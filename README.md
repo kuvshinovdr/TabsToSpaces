@@ -12,3 +12,6 @@ Command line parameters:
 
 Default tab width is 4 spaces. Command line parameters are processed one by one and if you pass a file name and only then change the tab width, then your file will be processed using the default tab width setting. The same is true for CRLF/LF settings. Thus, all settings are applied only to the files that follow them.
 
+Single CRs are left intact in any mode.
+
+The source code uses ISO C++23 and is intended to be cross-platform. Current builds are done in MSVC 2022 for Windows x64.

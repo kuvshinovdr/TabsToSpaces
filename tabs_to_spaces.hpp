@@ -16,10 +16,24 @@
 namespace TabsToSpaces
 {
 
-    [[nodiscard]] auto tabsToSpaces(std::string_view file, int tabWidth = 4)
-        -> std::string;
+    enum class LineEndingMode
+    {
+        Ignore,
+        Lf,
+        CrLf,
+    };
 
-    void tabsToSpaces(std::filesystem::path const& filename, int tabWidth = 4);
+    [[nodiscard]] auto tabsToSpaces(
+            std::string_view    file, 
+            int                 tabWidth       = 4, 
+            LineEndingMode      lineEndingMode = LineEndingMode::Ignore
+        ) -> std::string;
+
+    void tabsToSpaces(
+            std::filesystem::path const& filename, 
+            int                          tabWidth       = 4, 
+            LineEndingMode               lineEndingMode = LineEndingMode::Ignore
+        );
 
 #ifdef  TABS_TO_SPACES_TEST_ENABLED
     int test_tabsToSpaces();
