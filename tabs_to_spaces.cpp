@@ -244,15 +244,17 @@ namespace TabsToSpaces
         auto input  = loadFileToString(filename);
         auto output = tabsToSpaces(std::string_view{input}, tabWidth, lineEndingMode);
 
-        input = std::string{};
+        if (input != output) {
+            input = std::string{};
 
-        fs::path outputName = filename / ".tabs2spaces.tmp";
-        std::ofstream file(outputName, std::ios::binary);
-        file.write(output.data(), output.size());
+            fs::path outputName = filename / ".tabs2spaces.tmp";
+            std::ofstream file(outputName, std::ios::binary);
+            file.write(output.data(), output.size());
 
-        output = std::string{};
+            output = std::string{};
 
-        fs::rename(outputName, filename);
+            fs::rename(outputName, filename);
+        }
     }
 
 }
