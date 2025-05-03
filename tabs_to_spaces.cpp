@@ -399,7 +399,9 @@ namespace TabsToSpaces
             if (input != output) {
                 input = std::string{};
 
-                fs::path outputName = filename / ".tabs2spaces.tmp";
+                fs::path outputName = filename;
+                outputName += WC(".tabs2spaces.tmp"sv);
+
                 std::ofstream file(outputName, std::ios::binary);
                 file.write(output.data(), output.size());
 
