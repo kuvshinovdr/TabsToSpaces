@@ -17,7 +17,6 @@ int main(int argc, char* argv[])
 
     using namespace std::literals;
     using namespace TabsToSpaces;
-    using enum LineEndingMode;
     
     constexpr std::string_view helpParam = "--help"sv;
     constexpr std::string_view widthParam[] 
@@ -28,34 +27,37 @@ int main(int argc, char* argv[])
     
     constexpr std::string_view lfParam   = "--lf"sv;
     constexpr std::string_view crlfParam = "--crlf"sv;
+    constexpr std::string_view trimParam = "--trim"sv;
 
     if (argc == 1 || std::ranges::contains(argv + 1, argv + argc, helpParam)) {
         std::cout <<
-"TabsToSpaces v.1.0 converts files passed as command line parameters by sub-\n"
+"TabsToSpaces v.1.1 converts files passed as command line parameters by sub-\n"
 "stituting each tab with spaces until the next column is reached.\n"
 "Column (tab) width is 4 spaces by default but may be selected by using params\n"
 "-w:width or --width=width.\n"sv
-"Parameter --lf enables conversion of CR LF to single LFs.\n"
-"Parameter --crlf enables conversion of single LF (without preceding CR) into\n"
-"CR LF sequences.\n"sv;
+"* Parameter --lf enables conversion of CR LF to single LFs.\n"
+"* Parameter --crlf enables conversion of single LF (without preceding CR) into\n"
+"CR LF sequences.\n"sv
+"* Parameter --trim enables deleting all whitespaces before newlines.\n";
     }
 
-    int tabWidth = 4;
-    LineEndingMode lineEndingMode = Ignore;
+    Config config;
     
     for (int i = 1; i < argc; ++i) {
         std::string_view arg{argv[i]};
         try {
             if (arg == lfParam) {
-                lineEndingMode = Lf;
+                config.lineEndingMode = LineEndingMode::Lf;
             } else if (arg == crlfParam) {
-                lineEndingMode = CrLf;
+                config.lineEndingMode = LineEndingMode::CrLf;
             } else if (arg.starts_with(widthParam[0])) {
-                tabWidth = std::stoi(std::string{arg.substr(widthParam[0].size())});
+                config.tabWidth = std::stoi( std::string{arg.substr(widthParam[0].size())} );
             } else if (arg.starts_with(widthParam[1])) {
-                tabWidth = std::stoi(std::string{arg.substr(widthParam[1].size())});
+                config.tabWidth = std::stoi( std::string{arg.substr(widthParam[1].size())} );
+            } else if (arg == trimParam) {
+                config.whitespaceBeforeNewLines = WhitespaceBeforeNewLines::Trim;
             } else {
-                tabsToSpaces(std::filesystem::path{argv[i]}, tabWidth, lineEndingMode);
+                tabsToSpaces(std::filesystem::path{argv[i]}, config);
             }
         } catch (std::exception const& e) {
             std::cerr << "On argument "sv << i 

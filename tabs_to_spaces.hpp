@@ -23,16 +23,28 @@ namespace TabsToSpaces
         CrLf,
     };
 
+    enum class WhitespaceBeforeNewLines
+    {
+        DoNotTrim,
+        Trim,
+    };
+
+    struct Config
+    {
+        int                      tabWidth                   = 4;
+        LineEndingMode           lineEndingMode             = LineEndingMode::Ignore;
+        WhitespaceBeforeNewLines whitespaceBeforeNewLines   = WhitespaceBeforeNewLines::DoNotTrim;
+    };
+
+
     [[nodiscard]] auto tabsToSpaces(
-            std::string_view    file, 
-            int                 tabWidth       = 4, 
-            LineEndingMode      lineEndingMode = LineEndingMode::Ignore
+            std::string_view file, 
+            Config           config = {}
         ) -> std::string;
 
     void tabsToSpaces(
             std::filesystem::path const& filename, 
-            int                          tabWidth       = 4, 
-            LineEndingMode               lineEndingMode = LineEndingMode::Ignore
+            Config                       config    = {}
         );
 
 #ifdef  TABS_TO_SPACES_TEST_ENABLED
