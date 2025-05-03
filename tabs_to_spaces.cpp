@@ -404,6 +404,7 @@ namespace TabsToSpaces
 
                 std::ofstream file(outputName, std::ios::binary);
                 file.write(output.data(), output.size());
+                file.close();
 
                 output = std::string{};
                 fs::rename(outputName, filename);
