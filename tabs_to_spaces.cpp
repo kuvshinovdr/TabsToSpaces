@@ -15,6 +15,11 @@
 #include <iostream>
 #endif//TABS_TO_SPACES_TEST_ENABLED
 
+#ifdef _WIN32
+#define WC(x) L##x
+#else
+#define WC(x) x
+#endif
 
 namespace TabsToSpaces
 {
@@ -53,6 +58,8 @@ namespace TabsToSpaces
                     return nullptr;
                 }
             }
+
+            return to;
         }
 
     }
@@ -401,26 +408,62 @@ namespace TabsToSpaces
             }
         }
 
+        [[nodiscard]] bool detectRegexPath(
+            fs::path::string_type const& path) noexcept
+        {
+            return path.find_first_of(WC("*?"sv)) != path.npos;
+        }
+
+        [[nodiscard]] auto convertRegexString(
+            fs::path::string_type const& path)
+            -> fs::path::string_type
+        {
+            fs::path::string_type result;
+            for (auto ch : path) {
+                switch (ch) {
+                case WC('.'):
+                    result += WC("\\."sv);
+                    break;
+
+                case WC('*'):
+                    result += WC(".*"sv);
+                    break;
+
+                case WC('?'):
+                    result += WC('.');
+                    break;
+
+                default:
+                    result += ch;
+                }
+            }
+            
+            return result;
+        }
+
     }
 
-#ifdef _WIN32
-#define ASTERISK L'*'
-#else
-#define ASTERISK '*'
-#endif//_WIN32
 
     void tabsToSpaces(
             fs::path const& path, 
             Config          config
         )
     {
+    #ifdef  TABS_TO_SPACES_TEST_ENABLED
+        std::clog << "Doing "sv << path << '\n';
+    #endif
+
         auto const filename = path.filename();
-        if (!std::ranges::contains(filename.native(), ASTERISK)) {
+        if (!detectRegexPath(filename.native())) {
             return processOneFile(path, config);
         }
 
+    #ifdef  TABS_TO_SPACES_TEST_ENABLED
+        std::clog << "Regex path detected\n"sv;
+    #endif
+
         std::basic_regex<fs::path::value_type> fnrx(
-                filename.native(),
+                convertRegexString(filename.native()),
                   std::regex_constants::basic
                 | std::regex_constants::optimize
             #ifdef _WIN32
@@ -432,11 +475,17 @@ namespace TabsToSpaces
             fs::directory_iterator(path.parent_path()) 
             | std::views::filter([&fnrx](fs::directory_entry const& e)
                 {
+                #ifdef  TABS_TO_SPACES_TEST_ENABLED
+                    std::clog << "Testing "sv << e.path().filename() << '\n';
+                #endif
                     return e.is_regular_file() 
-                        && std::regex_match(e.path().native(), fnrx);
+                        && std::regex_match(e.path().filename().native(), fnrx);
                 }),
             [config](fs::directory_entry const& e)
             {
+            #ifdef  TABS_TO_SPACES_TEST_ENABLED
+                std::clog << "Processing: "sv << e << '\n';
+            #endif
                 processOneFile(e.path(), config);
             });
     }
