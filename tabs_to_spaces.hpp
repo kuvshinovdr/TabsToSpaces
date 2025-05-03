@@ -43,7 +43,7 @@ namespace TabsToSpaces
         ) -> std::string;
 
     void tabsToSpaces(
-            std::filesystem::path const& filename, 
+            std::filesystem::path const& path, 
             Config                       config    = {}
         );
 

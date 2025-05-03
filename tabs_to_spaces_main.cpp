@@ -31,7 +31,7 @@ int main(int argc, char* argv[])
 
     if (argc == 1 || std::ranges::contains(argv + 1, argv + argc, helpParam)) {
         std::cout <<
-"TabsToSpaces v.1.1 converts files passed as command line parameters by sub-\n"
+"TabsToSpaces v.1.2 converts files passed as command line parameters by sub-\n"
 "stituting each tab with spaces until the next column is reached.\n"
 "Column (tab) width is 4 spaces by default but may be selected by using params\n"
 "-w:width or --width=width.\n"sv
@@ -59,11 +59,28 @@ int main(int argc, char* argv[])
             } else {
                 tabsToSpaces(std::filesystem::path{argv[i]}, config);
             }
+        } catch (std::filesystem::filesystem_error const& e) {
+            std::clog << "On argument "sv << i
+                      << std::quoted(arg)
+                      << " error: "sv
+                      << e.what();
+            if (!e.path1().empty() || !e.path2().empty()) {
+                std::clog << "\nwith: "sv;
+                if (!e.path1().empty()) {
+                    std::clog << e.path1() << "; "sv;
+                }
+
+                if (!e.path2().empty()) {
+                    std::clog << e.path2();
+                }
+
+                std::clog << std::endl;
+            }
         } catch (std::exception const& e) {
-            std::cerr << "On argument "sv << i 
+            std::clog << "On argument "sv << i 
                       << std::quoted(arg) 
                       << " error: "sv
-                      << e.what() << '\n';
+                      << e.what() << std::endl;
         }
     }
 }

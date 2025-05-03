@@ -5,7 +5,9 @@
 
 #include <stdexcept>
 #include <string_view>
+#include <regex>
 #include <algorithm>
+#include <ranges>
 #include <fstream>
 #include <cstdint>
 
@@ -364,37 +366,79 @@ namespace TabsToSpaces
         {
             auto const fileSizeUmax = fs::file_size(filename);
             if (fileSizeUmax > SIZE_MAX) {
-                throw std::length_error("file is too big: "s + filename.string());
+                throw std::length_error("File is too big: "s + filename.string());
             }
 
             auto const fileSize = static_cast<std::size_t>(fileSizeUmax);
             std::string bytes(fileSize, '\0');
+            
             std::ifstream file(filename, std::ios::binary);
+            if (!file.is_open()) {
+                throw std::runtime_error("File read failed: "s + filename.string());
+            }
+
             file.read(bytes.data(), fileSize);
             return bytes;
         }
 
+        void processOneFile(
+                fs::path const& filename, 
+                Config          config
+            )
+        {
+            auto input  = loadFileToString(filename);
+            auto output = tabsToSpaces(std::string_view{input}, config);
+
+            if (input != output) {
+                input = std::string{};
+
+                fs::path outputName = filename / ".tabs2spaces.tmp";
+                std::ofstream file(outputName, std::ios::binary);
+                file.write(output.data(), output.size());
+
+                output = std::string{};
+                fs::rename(outputName, filename);
+            }
+        }
+
     }
 
+#ifdef _WIN32
+#define ASTERISK L'*'
+#else
+#define ASTERISK '*'
+#endif//_WIN32
+
     void tabsToSpaces(
-            fs::path const& filename, 
+            fs::path const& path, 
             Config          config
         )
     {
-        auto input  = loadFileToString(filename);
-        auto output = tabsToSpaces(std::string_view{input}, config);
-
-        if (input != output) {
-            input = std::string{};
-
-            fs::path outputName = filename / ".tabs2spaces.tmp";
-            std::ofstream file(outputName, std::ios::binary);
-            file.write(output.data(), output.size());
-
-            output = std::string{};
-
-            fs::rename(outputName, filename);
+        auto const filename = path.filename();
+        if (!std::ranges::contains(filename.native(), ASTERISK)) {
+            return processOneFile(path, config);
         }
+
+        std::basic_regex<fs::path::value_type> fnrx(
+                filename.native(),
+                  std::regex_constants::basic
+                | std::regex_constants::optimize
+            #ifdef _WIN32
+                | std::regex_constants::icase
+            #endif
+            );
+
+        std::ranges::for_each(
+            fs::directory_iterator(path.parent_path()) 
+            | std::views::filter([&fnrx](fs::directory_entry const& e)
+                {
+                    return e.is_regular_file() 
+                        && std::regex_match(e.path().native(), fnrx);
+                }),
+            [config](fs::directory_entry const& e)
+            {
+                processOneFile(e.path(), config);
+            });
     }
 
 }
