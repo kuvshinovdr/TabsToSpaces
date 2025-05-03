@@ -1,5 +1,5 @@
 ﻿// Copyright (c) 2025, D.R.Kuvshinov. All rights reserved.
-// This file is part of TabsToSpaces utility 
+// This file is part of TabsToSpaces utility
 // See LICENSE file for license and warranty information.
 #include "tabs_to_spaces.hpp"
 
@@ -66,7 +66,7 @@ namespace TabsToSpaces
 
 
     auto tabsToSpaces(
-            std::string_view    file, 
+            std::string_view    file,
             Config              config
         ) -> std::string
     {
@@ -76,20 +76,20 @@ namespace TabsToSpaces
         }
 
         auto const lineEndingMode = config.lineEndingMode;
-        std::string output(file.size() 
+        std::string output(file.size()
             + std::ranges::count(file, '\t') * tabWidth
             + (lineEndingMode == LineEndingMode::CrLf? std::ranges::count(file, '\n') * 2: 0),
             '\0');
-        
+
         auto       write   = output.data();
         auto       read    = file.data();
         auto const readEnd = read + file.size();
-        
+
         int  column = 0;
         bool hasCr  = false;
 
         bool const trim = config.whitespaceBeforeNewLines == WhitespaceBeforeNewLines::Trim;
-        
+
         while (read != readEnd) {
             switch (auto const in = *read++) {
             case '\t':
@@ -111,7 +111,7 @@ namespace TabsToSpaces
                 column = 0;
                 hasCr = false;
                 break;
-                
+
             case '\n':
                 if (lineEndingMode == LineEndingMode::CrLf && !hasCr) {
                     *write++ = '\r';
@@ -213,20 +213,20 @@ namespace TabsToSpaces
 
 
     [[nodiscard]] int test_tabsToSpaces(
-            std::string_view    file, 
+            std::string_view    file,
             Config              config,
             std::string_view    expected
         )
     {
         if (auto answer = tabsToSpaces(file, config); answer != expected) {
             std::clog << "Test failed: tabsToSpaces("sv
-                      << Quoted{ file }                            << ", "sv 
+                      << Quoted{ file }                            << ", "sv
                       << config.tabWidth                           << ", "sv
                       << toString(config.lineEndingMode)           << ", "sv
                       << toString(config.whitespaceBeforeNewLines) << ") ==\n"sv
                       << Quoted{ answer }                          << "\n!=\n"sv
                       << Quoted{ expected }                        << '\n';
-            
+
             return 1;
         }
 
@@ -378,7 +378,7 @@ namespace TabsToSpaces
 
             auto const fileSize = static_cast<std::size_t>(fileSizeUmax);
             std::string bytes(fileSize, '\0');
-            
+
             std::ifstream file(filename, std::ios::binary);
             if (!file.is_open()) {
                 throw std::runtime_error("File read failed: "s + filename.string());
@@ -389,7 +389,7 @@ namespace TabsToSpaces
         }
 
         void processOneFile(
-                fs::path const& filename, 
+                fs::path const& filename,
                 Config          config
             )
         {
@@ -440,7 +440,7 @@ namespace TabsToSpaces
                     result += ch;
                 }
             }
-            
+
             return result;
         }
 
@@ -448,7 +448,7 @@ namespace TabsToSpaces
 
 
     void tabsToSpaces(
-            fs::path const& path, 
+            fs::path const& path,
             Config          config
         )
     {
@@ -475,13 +475,13 @@ namespace TabsToSpaces
             );
 
         std::ranges::for_each(
-            fs::directory_iterator(path.parent_path()) 
+            fs::directory_iterator(path.parent_path())
             | std::views::filter([&fnrx](fs::directory_entry const& e)
                 {
                 #ifdef  TABS_TO_SPACES_TEST_ENABLED
                     std::clog << "Testing "sv << e.path().filename() << '\n';
                 #endif
-                    return e.is_regular_file() 
+                    return e.is_regular_file()
                         && std::regex_match(e.path().filename().native(), fnrx);
                 }),
             [config](fs::directory_entry const& e)

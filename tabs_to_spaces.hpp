@@ -1,5 +1,5 @@
 ﻿// Copyright (c) 2025, D.R.Kuvshinov. All rights reserved.
-// This file is part of TabsToSpaces utility 
+// This file is part of TabsToSpaces utility
 // See LICENSE file for license and warranty information.
 #ifndef TABS_TO_SPACES_HPP
 #define TABS_TO_SPACES_HPP
@@ -38,12 +38,12 @@ namespace TabsToSpaces
 
 
     [[nodiscard]] auto tabsToSpaces(
-            std::string_view file, 
+            std::string_view file,
             Config           config = {}
         ) -> std::string;
 
     void tabsToSpaces(
-            std::filesystem::path const& path, 
+            std::filesystem::path const& path,
             Config                       config    = {}
         );
 
