@@ -29,11 +29,18 @@ namespace TabsToSpaces
         Trim,
     };
 
+    enum class DirectoryWalk
+    {
+        OneLevel,
+        Nested
+    };
+
     struct Config
     {
         int                      tabWidth                   = 4;
         LineEndingMode           lineEndingMode             = LineEndingMode::Ignore;
         WhitespaceBeforeNewLines whitespaceBeforeNewLines   = WhitespaceBeforeNewLines::DoNotTrim;
+        DirectoryWalk            directoryWalk              = DirectoryWalk::OneLevel;
     };
 
 
@@ -44,7 +51,7 @@ namespace TabsToSpaces
 
     void tabsToSpaces(
             std::filesystem::path const& path,
-            Config                       config    = {}
+            Config                       config = {}
         );
 
 #ifdef  TABS_TO_SPACES_TEST_ENABLED

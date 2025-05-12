@@ -474,23 +474,36 @@ namespace TabsToSpaces
             #endif
             );
 
-        std::ranges::for_each(
-            fs::directory_iterator(path.parent_path())
-            | std::views::filter([&fnrx](fs::directory_entry const& e)
-                {
-                #ifdef  TABS_TO_SPACES_TEST_ENABLED
-                    std::clog << "Testing "sv << e.path().filename() << '\n';
-                #endif
-                    return e.is_regular_file()
-                        && std::regex_match(e.path().filename().native(), fnrx);
-                }),
-            [config](fs::directory_entry const& e)
+        auto fileCond = [&fnrx](fs::directory_entry const& e)
+            {
+            #ifdef  TABS_TO_SPACES_TEST_ENABLED
+                std::clog << "Testing "sv << e.path().filename() << '\n';
+            #endif
+                return e.is_regular_file()
+                    && std::regex_match(e.path().filename().native(), fnrx);
+            };
+
+        auto fileProcess = [config](fs::directory_entry const& e)
             {
             #ifdef  TABS_TO_SPACES_TEST_ENABLED
                 std::clog << "Processing: "sv << e << '\n';
             #endif
                 processOneFile(e.path(), config);
-            });
+            };
+
+        switch (config.directoryWalk) {
+        case DirectoryWalk::OneLevel:
+            std::ranges::for_each(
+                fs::directory_iterator(path.parent_path()) | std::views::filter(fileCond),
+                fileProcess);
+            break;
+
+        case DirectoryWalk::Nested:
+            std::ranges::for_each(
+                fs::recursive_directory_iterator(path.parent_path()) | std::views::filter(fileCond),
+                fileProcess);
+            break;
+        }
     }
 
 }

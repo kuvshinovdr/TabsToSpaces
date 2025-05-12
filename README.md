@@ -1,4 +1,4 @@
-# TabsToSpaces v.1.0beta
+# TabsToSpaces v.1.1beta
 
 A simple command line utility to convert tabs to spaces and change new-lines (to LF or to CRLF).
 
@@ -8,7 +8,10 @@ Command line parameters:
 - `--width=n` or `-w:n` where `n` is an integer sets tab width in spaces to `n`;
 - `--crlf` make all new-lines to be CR LF pairs;
 - `--lf` make all new-lines to be single LF characters;
+- `--rec` recursively walk through nested subdirectories (disabled by default);
+- `--norec` disable `--rec` option;
 - `--trim` delete redundant spaces and tabs before new-lines (disabled by default);
+- `--notrim` disable `--trim` option;
 - *other*: source file names to be converted (in-place).
 
 File names (but not parent directory paths) may contain wildcard characters: `*` (matching any sequence of characters) and `?` (matching any single character). The pattern is not applied recursively to the nested directories (though this is planned to be added).
