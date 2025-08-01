@@ -37,6 +37,7 @@ namespace TabsToSpaces
                 LineEndingMode  lineEndingMode
             ) -> char const*
         {
+            bool const ignore = lineEndingMode == LineEndingMode::Ignore;
             for (bool hasCr = false; from != to; ++from) {
                 switch (auto const in = *from) {
                 case ' ':
@@ -49,7 +50,7 @@ namespace TabsToSpaces
                     break;
 
                 case '\n':
-                    if (hasCr && lineEndingMode == LineEndingMode::Ignore) {
+                    if (ignore && hasCr) {
                         return from - 1;
                     }
                     return from;
@@ -172,8 +173,9 @@ namespace TabsToSpaces
 
 
 #ifdef  TABS_TO_SPACES_TEST_ENABLED
-    [[nodiscard]] auto toString(LineEndingMode lineEndingMode) noexcept
-        -> std::string_view
+    [[nodiscard]] auto toString(
+            LineEndingMode lineEndingMode
+        ) noexcept -> std::string_view
     {
         using enum LineEndingMode;
         switch (lineEndingMode) {
@@ -185,8 +187,9 @@ namespace TabsToSpaces
         return "Unknown"sv;
     }
 
-    [[nodiscard]] auto toString(WhitespaceBeforeNewLines whitespaceBeforeNewLines) noexcept
-        -> std::string_view
+    [[nodiscard]] auto toString(
+            WhitespaceBeforeNewLines whitespaceBeforeNewLines
+        ) noexcept -> std::string_view
     {
         using enum WhitespaceBeforeNewLines;
         switch (whitespaceBeforeNewLines) {
@@ -432,7 +435,8 @@ namespace TabsToSpaces
         }
 
         [[nodiscard]] bool detectRegexPath(
-            fs::path::string_type const& path) noexcept
+                fs::path::string_type const& path
+            ) noexcept
         {
             return path.find_first_of(WC("*?"sv)) != path.npos;
         }
