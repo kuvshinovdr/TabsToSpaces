@@ -6,13 +6,17 @@
 #include <iostream>
 #include <algorithm>
 
-
 int main(int argc, char* argv[])
 {
 #ifdef  TABS_TO_SPACES_TEST_ENABLED
-    std::cerr << "Running TabsToSpaces tests.\n";
-    int errors = TabsToSpaces::test_tabsToSpaces();
-    std::cerr << "Total errors: " << errors << '\n';
+    {
+        std::cerr << "Running TabsToSpaces tests.\n";
+        int errors = TabsToSpaces::test_tabsToSpaces();
+        std::cerr << "Total errors: " << errors << '\n';
+        if (errors != 0) {
+            return errors;
+        }
+    }
 #endif//TABS_TO_SPACES_TEST_ENABLED
 
     using namespace std::literals;
@@ -49,9 +53,18 @@ int main(int argc, char* argv[])
     }
 
     Config config;
+    int errors = 0;
 
     for (int i = 1; i < argc; ++i) {
         std::string_view arg{argv[i]};
+
+        auto errorPrologue = [&]
+            {
+                ++errors;
+                std::clog << "On argument "sv << i
+                    << std::quoted(arg);
+            };
+
         try {
             if (arg == lfParam) {
                 config.lineEndingMode = LineEndingMode::Lf;
@@ -73,10 +86,8 @@ int main(int argc, char* argv[])
                 tabsToSpaces(std::filesystem::path{argv[i]}, config);
             }
         } catch (std::filesystem::filesystem_error const& e) {
-            std::clog << "On argument "sv << i
-                      << std::quoted(arg)
-                      << " error: "sv
-                      << e.what();
+            errorPrologue();
+            std::clog << " error: "sv << e.what();
             if (!e.path1().empty() || !e.path2().empty()) {
                 std::clog << "\nwith: "sv;
                 if (!e.path1().empty()) {
@@ -86,14 +97,17 @@ int main(int argc, char* argv[])
                 if (!e.path2().empty()) {
                     std::clog << e.path2();
                 }
-
-                std::clog << std::endl;
             }
+
+            std::clog << std::endl;
         } catch (std::exception const& e) {
-            std::clog << "On argument "sv << i
-                      << std::quoted(arg)
-                      << " error: "sv
-                      << e.what() << std::endl;
+            errorPrologue();
+            std::clog << " error: "sv << e.what() << std::endl;
+        } catch (...) {
+            errorPrologue();
+            std::clog << " unknown error.\n"sv;
         }
     }
+
+    return errors;
 }

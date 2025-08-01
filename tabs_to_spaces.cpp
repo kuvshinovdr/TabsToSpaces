@@ -26,20 +26,19 @@ namespace TabsToSpaces
 
     using namespace std::literals;
 
-
     namespace
     {
 
-        [[nodiscard]] auto nlProbe(
+        // Find the position of a newline character sequence after space characters.
+        // Returns nullptr on non-space character.
+        [[nodiscard]] auto newlineProbe(
                 char const*     from,
                 char const*     to,
                 LineEndingMode  lineEndingMode
             ) -> char const*
         {
-            bool hasCr = false;
-            while (from != to) {
-                auto const in = *from++;
-                switch (in) {
+            for (bool hasCr = false; from != to; ++from) {
+                switch (auto const in = *from) {
                 case ' ':
                 case '\t':
                     hasCr = false;
@@ -50,9 +49,10 @@ namespace TabsToSpaces
                     break;
 
                 case '\n':
-                    if (hasCr && lineEndingMode == LineEndingMode::Ignore)
-                        return from - 2;
-                    return from - 1;
+                    if (hasCr && lineEndingMode == LineEndingMode::Ignore) {
+                        return from - 1;
+                    }
+                    return from;
 
                 default:
                     return nullptr;
@@ -65,8 +65,20 @@ namespace TabsToSpaces
     }
 
 
+    [[nodiscard]] auto estimateOutputSize(
+            std::string_view    fileContents,
+            int                 tabWidth,
+            LineEndingMode      lineEndingMode
+        ) -> std::size_t
+    {
+        auto const tabSpaceEstimate  = std::ranges::count(fileContents, '\t') * tabWidth;
+        auto const additionalCrCount = std::ranges::count(fileContents, '\n');
+        return fileContents.size() + tabSpaceEstimate + additionalCrCount;
+    }
+
+
     auto tabsToSpaces(
-            std::string_view    file,
+            std::string_view    fileContents,
             Config              config
         ) -> std::string
     {
@@ -76,31 +88,32 @@ namespace TabsToSpaces
         }
 
         auto const lineEndingMode = config.lineEndingMode;
-        std::string output(file.size()
-            + std::ranges::count(file, '\t') * tabWidth
-            + (lineEndingMode == LineEndingMode::CrLf? std::ranges::count(file, '\n') * 2: 0),
+        std::string output(
+            estimateOutputSize(fileContents, tabWidth, lineEndingMode),
             '\0');
 
         auto       write   = output.data();
-        auto       read    = file.data();
-        auto const readEnd = read + file.size();
+        auto       read    = fileContents.data();
+        auto const readEnd = read + fileContents.size();
 
         int  column = 0;
         bool hasCr  = false;
 
         bool const trim = config.whitespaceBeforeNewLines == WhitespaceBeforeNewLines::Trim;
+        bool const lf   = lineEndingMode == LineEndingMode::Lf;
+        bool const crlf = lineEndingMode == LineEndingMode::CrLf;
 
         while (read != readEnd) {
             switch (auto const in = *read++) {
             case '\t':
                 if (trim) {
-                    if (auto nlPos = nlProbe(read - 1, readEnd, lineEndingMode)) {
+                    if (auto nlPos = newlineProbe(read - 1, readEnd, lineEndingMode)) {
                         read = nlPos;
                         continue;
                     }
                 }
 
-                if (hasCr && lineEndingMode == LineEndingMode::Lf) {
+                if (lf && hasCr) {
                     *write++ = '\r';
                 }
 
@@ -109,33 +122,33 @@ namespace TabsToSpaces
                 }
 
                 column = 0;
-                hasCr = false;
+                hasCr  = false;
                 break;
 
             case '\n':
-                if (lineEndingMode == LineEndingMode::CrLf && !hasCr) {
+                if (crlf && !hasCr) {
                     *write++ = '\r';
                 }
 
                 *write++ = in;
-                column = 0;
-                hasCr = false;
+                column   = 0;
+                hasCr    = false;
                 break;
 
             default:
-                if (in == ' ' && trim) {
-                    if (auto nlPos = nlProbe(read - 1, readEnd, lineEndingMode)) {
+                if (trim && in == ' ') {
+                    if (auto nlPos = newlineProbe(read - 1, readEnd, lineEndingMode)) {
                         read = nlPos;
                         continue;
                     }
                 }
 
-                if (hasCr && lineEndingMode == LineEndingMode::Lf) {
+                if (lf && hasCr) {
                     *write++ = '\r';
                 } // else writes CR immediately.
 
                 hasCr = in == '\r';
-                if (!hasCr || lineEndingMode != LineEndingMode::Lf) {
+                if (!lf || !hasCr) {
                     *write++ = in;
                 } // else writes CR before the next character that is not LF.
 
@@ -145,11 +158,18 @@ namespace TabsToSpaces
                     column = 0;
                 }
             }
+
+        #ifdef  TABS_TO_SPACES_TEST_ENABLED
+            if (static_cast<std::size_t>(write - output.data()) > output.size()) {
+                throw std::logic_error("tabsToSpaces: invalid output size estimate detected");
+            }
+        #endif//TABS_TO_SPACES_TEST_ENABLED
         }
 
         output.resize(write - output.data());
         return output;
     }
+
 
 #ifdef  TABS_TO_SPACES_TEST_ENABLED
     [[nodiscard]] auto toString(LineEndingMode lineEndingMode) noexcept
@@ -418,8 +438,8 @@ namespace TabsToSpaces
         }
 
         [[nodiscard]] auto convertRegexString(
-            fs::path::string_type const& path)
-            -> fs::path::string_type
+                fs::path::string_type const& path
+            ) -> fs::path::string_type
         {
             fs::path::string_type result;
             for (auto ch : path) {
@@ -465,7 +485,7 @@ namespace TabsToSpaces
         std::clog << "Regex path detected\n"sv;
     #endif
 
-        std::basic_regex<fs::path::value_type> fnrx(
+        std::basic_regex<fs::path::value_type> filenameRegex(
                 convertRegexString(filename.native()),
                   std::regex_constants::basic
                 | std::regex_constants::optimize
@@ -474,13 +494,13 @@ namespace TabsToSpaces
             #endif
             );
 
-        auto fileCond = [&fnrx](fs::directory_entry const& e)
+        auto fileCond = [&filenameRegex](fs::directory_entry const& e)
             {
             #ifdef  TABS_TO_SPACES_TEST_ENABLED
                 std::clog << "Testing "sv << e.path().filename() << '\n';
             #endif
                 return e.is_regular_file()
-                    && std::regex_match(e.path().filename().native(), fnrx);
+                    && std::regex_match(e.path().filename().native(), filenameRegex);
             };
 
         auto fileProcess = [config](fs::directory_entry const& e)

@@ -12,7 +12,6 @@
 #define TABS_TO_SPACES_TEST_ENABLED
 #endif//DEBUG
 
-
 namespace TabsToSpaces
 {
 
@@ -42,7 +41,6 @@ namespace TabsToSpaces
         WhitespaceBeforeNewLines whitespaceBeforeNewLines   = WhitespaceBeforeNewLines::DoNotTrim;
         DirectoryWalk            directoryWalk              = DirectoryWalk::OneLevel;
     };
-
 
     [[nodiscard]] auto tabsToSpaces(
             std::string_view file,
